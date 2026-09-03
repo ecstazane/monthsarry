@@ -569,12 +569,20 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* highlight-phrase no longer styled differently — same as body text */
 .highlight-phrase {
-  color: var(--accent-gold);
-  font-weight: 500;
-  font-style: italic;
-  border-bottom: 1px solid rgba(223, 186, 106, 0.35);
-  padding-bottom: 2px;
+  font-weight: inherit;
+  font-style: inherit;
+  color: inherit;
+}
+
+/* Active track polaroid glow */
+.polaroid-card.is-active-track {
+  box-shadow:
+    0 0 20px rgba(223, 186, 106, 0.4),
+    0 18px 40px rgba(0, 0, 0, 0.65),
+    0 6px 16px rgba(0, 0, 0, 0.4);
+  border-color: rgba(223, 186, 106, 0.5);
 }
 
 .message-paragraph.love-moment {

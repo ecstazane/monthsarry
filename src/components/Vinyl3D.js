@@ -19,16 +19,11 @@ class Vinyl3DManager {
     // Lighting state
     this.isIlluminated = false;
     
-    // Physics & Rotation State
+    // Spin state
     this.isSpinning = false;
     this.currentRotationSpeed = 0;
     this.targetRotationSpeed = 0;
-    this.maxRotationSpeed = 0.035;
-    
-    // Position & Transform Target States
-    this.scrollProgress = 0;
-    this.basePosition = { x: -2.2, y: 0.0, z: 0 };
-    this.baseRotation = { x: 0.3, y: 0.35, z: -0.1 };
+    this.maxRotationSpeed = 0.025;
 
     this.rafId = null;
     this.clock = new THREE.Clock();
@@ -40,13 +35,15 @@ class Vinyl3DManager {
     // 1. Scene Setup
     this.scene = new THREE.Scene();
 
-    // 2. Camera Setup
+    // 2. Camera — looking straight down at the vinyl (top-down view like the reference)
     const width = this.container.clientWidth;
     const height = this.container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    this.camera.position.set(0, 0, 8);
+    this.camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
+    // Position camera above and slightly in front, looking down
+    this.camera.position.set(0, 9, 2.5);
+    this.camera.lookAt(0, 0, 0);
 
-    // 3. Renderer Setup
+    // 3. Renderer
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true,
@@ -61,44 +58,65 @@ class Vinyl3DManager {
 
     this.container.appendChild(this.renderer.domElement);
 
-    // 4. Lighting Setup
+    // 4. Lighting
     this.setupLighting();
 
-    // 5. Create Concentric Vinyl Structure
+    // 5. Vinyl
     this.createVinylStructure();
 
-    // 6. Responsive Handling
-    window.addEventListener('resize', () => this.onResize());
-    this.adjustLayoutForViewport();
+    // 6. Position vinyl to the left, partially off-screen (like the reference photo)
+    this.positionVinyl();
 
-    // 7. Start Render Loop
+    // 7. Resize handler
+    window.addEventListener('resize', () => this.onResize());
+
+    // 8. Start render loop
     this.animate();
   }
 
   setupLighting() {
-    // Soft Ambient Light (starts dark)
-    this.ambientLight = new THREE.AmbientLight(0xfff5e6, 0.12);
+    // Soft Ambient Light (starts dim for dark room)
+    this.ambientLight = new THREE.AmbientLight(0xfff5e6, 0.15);
     this.scene.add(this.ambientLight);
 
-    // Key Directional Light (starts dark)
-    this.keyLight = new THREE.DirectionalLight(0xfff7ea, 0.25);
-    this.keyLight.position.set(-4, 6, 6);
+    // Key Light from upper-left (like the reference — light catches the grooves)
+    this.keyLight = new THREE.DirectionalLight(0xfff7ea, 0.3);
+    this.keyLight.position.set(-5, 8, 4);
     this.keyLight.castShadow = true;
     this.keyLight.shadow.mapSize.width = 1024;
     this.keyLight.shadow.mapSize.height = 1024;
     this.scene.add(this.keyLight);
 
     // Warm Lampshade Spotlight
-    this.lampSpotLight = new THREE.SpotLight(0xffe2a0, 0.1, 15, Math.PI / 3, 0.5, 1);
-    this.lampSpotLight.position.set(-1.5, 5, 3);
+    this.lampSpotLight = new THREE.SpotLight(0xffe2a0, 0.1, 18, Math.PI / 3, 0.5, 1);
+    this.lampSpotLight.position.set(-2, 8, 2);
     this.lampSpotLight.target.position.set(-2, 0, 0);
     this.scene.add(this.lampSpotLight);
     this.scene.add(this.lampSpotLight.target);
 
-    // Specular Point Light
-    this.pointLight = new THREE.PointLight(0xffffff, 0.2, 10);
-    this.pointLight.position.set(-2, 2, 4);
+    // Specular rim light to catch groove edges
+    this.pointLight = new THREE.PointLight(0xffffff, 0.2, 14);
+    this.pointLight.position.set(2, 6, 3);
     this.scene.add(this.pointLight);
+  }
+
+  positionVinyl() {
+    if (!this.vinylGroup) return;
+    const w = window.innerWidth;
+
+    if (w <= 480) {
+      // Small phone — vinyl large, shifted far left & up
+      this.vinylGroup.position.set(-3.2, 0, 0);
+      this.vinylGroup.scale.set(1.3, 1.3, 1.3);
+    } else if (w <= 768) {
+      // Tablet / larger phone
+      this.vinylGroup.position.set(-3.5, 0, 0);
+      this.vinylGroup.scale.set(1.4, 1.4, 1.4);
+    } else {
+      // Desktop — vinyl large, cropped left like reference
+      this.vinylGroup.position.set(-3.0, 0, 0);
+      this.vinylGroup.scale.set(1.5, 1.5, 1.5);
+    }
   }
 
   setLightState(illuminated) {
@@ -107,33 +125,25 @@ class Vinyl3DManager {
     const duration = illuminated ? 1.8 : 1.2;
     const ease = illuminated ? 'power2.out' : 'power2.inOut';
 
-    // GSAP animations with overwrite to handle rapid play/pause toggles cleanly
     gsap.to(this.ambientLight, {
-      intensity: illuminated ? 1.1 : 0.12,
-      duration: duration,
-      ease: ease,
-      overwrite: 'auto'
+      intensity: illuminated ? 1.2 : 0.15,
+      duration, ease, overwrite: 'auto'
     });
 
     gsap.to(this.keyLight, {
-      intensity: illuminated ? 2.8 : 0.25,
-      duration: duration,
-      ease: ease,
-      overwrite: 'auto'
+      intensity: illuminated ? 3.0 : 0.3,
+      duration, ease, overwrite: 'auto'
     });
 
     gsap.to(this.lampSpotLight, {
-      intensity: illuminated ? 4.8 : 0.1,
+      intensity: illuminated ? 5.0 : 0.1,
       duration: illuminated ? 2.0 : 1.2,
-      ease: ease,
-      overwrite: 'auto'
+      ease, overwrite: 'auto'
     });
 
     gsap.to(this.pointLight, {
-      intensity: illuminated ? 1.2 : 0.2,
-      duration: duration,
-      ease: ease,
-      overwrite: 'auto'
+      intensity: illuminated ? 1.4 : 0.2,
+      duration, ease, overwrite: 'auto'
     });
   }
 
@@ -141,23 +151,23 @@ class Vinyl3DManager {
     this.vinylGroup = new THREE.Group();
     this.spinGroup = new THREE.Group();
 
-    const vinylRadius = 2.4;
-    const vinylThickness = 0.08;
-    const labelRadius = 0.92;
-    const holeRadius = 0.12;
+    const vinylRadius = 3.0;
+    const vinylThickness = 0.1;
+    const labelRadius = 1.15;
+    const holeRadius = 0.15;
 
-    // 1. BLACK VINYL RECORD DISC
+    // ── BLACK VINYL DISC ──
     const grooveTexture = this.generateGrooveTexture();
 
     const recordGeometry = new THREE.CylinderGeometry(vinylRadius, vinylRadius, vinylThickness, 128);
     const recordMaterial = new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      roughness: 0.32,
-      metalness: 0.12,
+      color: 0x0a0a0a,
+      roughness: 0.28,
+      metalness: 0.15,
       roughnessMap: grooveTexture,
       bumpMap: grooveTexture,
-      bumpScale: 0.012,
-      envMapIntensity: 1.2
+      bumpScale: 0.018,
+      envMapIntensity: 1.4
     });
 
     const recordMesh = new THREE.Mesh(recordGeometry, recordMaterial);
@@ -166,9 +176,21 @@ class Vinyl3DManager {
     recordMesh.receiveShadow = true;
     this.spinGroup.add(recordMesh);
 
-    // 2. WHITE CENTER LABEL (PERFECTLY CONCENTRIC AT ORIGIN 0,0)
+    // ── OUTER RIM (subtle raised edge) ──
+    const rimGeometry = new THREE.TorusGeometry(vinylRadius, 0.035, 16, 128);
+    const rimMaterial = new THREE.MeshStandardMaterial({
+      color: 0x151515,
+      roughness: 0.2,
+      metalness: 0.3,
+    });
+    const rimMesh = new THREE.Mesh(rimGeometry, rimMaterial);
+    rimMesh.rotation.x = Math.PI / 2;
+    rimMesh.position.set(0, 0, 0);
+    this.spinGroup.add(rimMesh);
+
+    // ── WHITE CENTER LABEL ──
     const labelTexture = this.generateLabelTexture();
-    
+
     const labelGeometry = new THREE.CircleGeometry(labelRadius, 128);
     const labelMaterial = new THREE.MeshStandardMaterial({
       map: labelTexture,
@@ -187,10 +209,10 @@ class Vinyl3DManager {
     botLabelMesh.position.set(0, -vinylThickness / 2 - 0.001, 0);
     this.spinGroup.add(botLabelMesh);
 
-    // 3. BLACK CENTER HOLE (PERFECTLY CONCENTRIC AT ORIGIN 0,0)
+    // ── CENTER SPINDLE HOLE ──
     const holeGeometry = new THREE.CircleGeometry(holeRadius, 64);
     const holeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x080808,
+      color: 0x060606,
       side: THREE.DoubleSide
     });
 
@@ -205,10 +227,6 @@ class Vinyl3DManager {
     this.spinGroup.add(botHoleMesh);
 
     this.vinylGroup.add(this.spinGroup);
-
-    this.vinylGroup.position.set(this.basePosition.x, this.basePosition.y, this.basePosition.z);
-    this.vinylGroup.rotation.set(this.baseRotation.x, this.baseRotation.y, this.baseRotation.z);
-
     this.scene.add(this.vinylGroup);
   }
 
@@ -218,20 +236,37 @@ class Vinyl3DManager {
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#333333';
+    // Base dark surface
+    ctx.fillStyle = '#222222';
     ctx.fillRect(0, 0, 1024, 1024);
 
-    const centerX = 512;
-    const centerY = 512;
+    const cx = 512;
+    const cy = 512;
 
-    ctx.lineWidth = 1.5;
-    for (let r = 90; r < 500; r += 2.2) {
-      const alpha = 0.25 + 0.45 * Math.sin(r * 0.35);
+    // Concentric groove rings — tighter spacing for realism
+    for (let r = 100; r < 490; r += 1.8) {
+      const alpha = 0.15 + 0.35 * Math.sin(r * 0.4);
       ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
     }
+
+    // Subtle radial scratches for realism
+    ctx.globalAlpha = 0.04;
+    for (let i = 0; i < 30; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const length = 100 + Math.random() * 350;
+      const startR = 80 + Math.random() * 100;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(angle) * startR, cy + Math.sin(angle) * startR);
+      ctx.lineTo(cx + Math.cos(angle) * (startR + length), cy + Math.sin(angle) * (startR + length));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -245,39 +280,75 @@ class Vinyl3DManager {
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
 
-    const centerX = 512;
-    const centerY = 512;
+    const cx = 512;
+    const cy = 512;
 
-    ctx.fillStyle = '#f4f1ea';
+    // Off-white paper background
+    ctx.fillStyle = '#f0ede5';
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 512, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 512, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = '#383630';
-    ctx.lineWidth = 6;
+    // Subtle paper texture noise
+    for (let i = 0; i < 3000; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 1024;
+      const dx = x - cx;
+      const dy = y - cy;
+      if (dx * dx + dy * dy < 512 * 512) {
+        ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    // Outer border ring
+    ctx.strokeStyle = '#2a2820';
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 480, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 478, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.lineWidth = 4;
+    // Inner decorative ring
+    ctx.strokeStyle = '#4a4840';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(centerX - 460, centerY);
-    ctx.lineTo(centerX + 460, centerY);
+    ctx.arc(cx, cy, 440, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = '#22211d';
-    ctx.font = 'bold 56px "Plus Jakarta Sans", sans-serif';
-    ctx.textAlign = 'center';
+    // Horizontal divider line
+    ctx.strokeStyle = '#2a2820';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 440, cy);
+    ctx.lineTo(cx + 440, cy);
+    ctx.stroke();
+
+    // "STEREO" text on the left
+    ctx.fillStyle = '#1e1d19';
+    ctx.font = 'bold 52px "Plus Jakarta Sans", sans-serif';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('STEREO', centerX - 240, centerY);
+    ctx.fillText('STEREO', cx - 400, cy);
 
+    // "SIDE A" and "33 RPM" on the right
+    ctx.textAlign = 'right';
+    ctx.font = '500 30px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('SIDE A', cx + 400, cy - 40);
+    ctx.fillText('33 RPM', cx + 400, cy + 40);
+
+    // Top text — song title
+    ctx.textAlign = 'center';
+    ctx.font = '600 38px "Plus Jakarta Sans", sans-serif';
+    ctx.fillText('CAPTIVATED', cx, cy - 200);
+
+    // Bottom text — occasion
     ctx.font = '500 32px "Plus Jakarta Sans", sans-serif';
-    ctx.fillText('SIDE A', centerX + 240, centerY - 45);
-    ctx.fillText('33 RPM', centerX + 240, centerY + 45);
+    ctx.fillText('11TH MONTHSARY', cx, cy + 200);
 
-    ctx.font = '600 36px "Plus Jakarta Sans", sans-serif';
-    ctx.fillText('BLESSED', centerX, centerY - 260);
-    ctx.fillText('11TH MONTHSARY', centerX, centerY + 260);
+    // Tiny credits text
+    ctx.font = '400 20px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = '#5a5850';
+    ctx.fillText('FOR BABY ♥', cx, cy + 300);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.generateMipmaps = true;
@@ -289,53 +360,9 @@ class Vinyl3DManager {
     this.targetRotationSpeed = spinning ? this.maxRotationSpeed : 0;
   }
 
-  updateScroll(progress) {
-    this.scrollProgress = progress;
-
-    if (!this.vinylGroup) return;
-
-    const isMobile = window.innerWidth <= 768;
-
-    if (progress < 0.3) {
-      const p = progress / 0.3;
-      const startX = isMobile ? -0.8 : this.basePosition.x;
-      const targetX = isMobile ? -0.4 : -2.0;
-
-      this.vinylGroup.position.x = THREE.MathUtils.lerp(startX, targetX, p);
-      this.vinylGroup.position.y = THREE.MathUtils.lerp(this.basePosition.y, 0.1, p);
-      this.vinylGroup.position.z = THREE.MathUtils.lerp(0, -0.8, p);
-
-      this.vinylGroup.rotation.x = THREE.MathUtils.lerp(this.baseRotation.x, 0.35, p);
-      this.vinylGroup.rotation.y = THREE.MathUtils.lerp(this.baseRotation.y, 0.2, p);
-    } else {
-      const p = (progress - 0.3) / 0.7;
-      this.vinylGroup.position.x = THREE.MathUtils.lerp(-2.0, -1.2, p);
-      this.vinylGroup.position.y = THREE.MathUtils.lerp(0.1, -0.4, p);
-      this.vinylGroup.position.z = THREE.MathUtils.lerp(-0.8, -2.0, p);
-      
-      this.vinylGroup.rotation.x = THREE.MathUtils.lerp(0.35, 0.2, p);
-      this.vinylGroup.rotation.y = THREE.MathUtils.lerp(0.2, 0.05, p);
-    }
-  }
-
-  adjustLayoutForViewport() {
-    if (!this.vinylGroup) return;
-    const width = window.innerWidth;
-
-    if (width <= 480) {
-      this.basePosition = { x: -0.6, y: 1.1, z: -1.2 };
-      this.vinylGroup.scale.set(0.72, 0.72, 0.72);
-    } else if (width <= 768) {
-      this.basePosition = { x: -1.5, y: 0.6, z: -0.6 };
-      this.vinylGroup.scale.set(0.85, 0.85, 0.85);
-    } else {
-      this.basePosition = { x: -2.2, y: 0.0, z: 0 };
-      this.vinylGroup.scale.set(1.0, 1.0, 1.0);
-    }
-
-    if (this.scrollProgress === 0) {
-      this.vinylGroup.position.set(this.basePosition.x, this.basePosition.y, this.basePosition.z);
-    }
+  // No-op — vinyl stays fixed, no scroll movement
+  updateScroll(_progress) {
+    // Intentionally empty — vinyl only spins, does not move
   }
 
   onResize() {
@@ -350,30 +377,29 @@ class Vinyl3DManager {
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-    this.adjustLayoutForViewport();
+    this.positionVinyl();
   }
 
   animate() {
     this.rafId = requestAnimationFrame(() => this.animate());
 
+    // Smooth spin acceleration/deceleration
     this.currentRotationSpeed = THREE.MathUtils.lerp(
       this.currentRotationSpeed,
       this.targetRotationSpeed,
-      0.035
+      0.03
     );
 
+    // Spin the vinyl around Y axis
     if (this.spinGroup && Math.abs(this.currentRotationSpeed) > 0.0001) {
       this.spinGroup.rotation.y += this.currentRotationSpeed;
     }
 
-    if (this.vinylGroup) {
+    // Subtle specular light movement when illuminated
+    if (this.pointLight && this.isIlluminated) {
       const time = this.clock.getElapsedTime();
-      this.vinylGroup.position.y += Math.sin(time * 1.2) * 0.0006;
-      
-      if (this.pointLight && this.isIlluminated) {
-        this.pointLight.position.x = -2 + Math.sin(time * 0.8) * 1.0;
-        this.pointLight.position.y = 2 + Math.cos(time * 0.6) * 0.8;
-      }
+      this.pointLight.position.x = 2 + Math.sin(time * 0.6) * 0.8;
+      this.pointLight.position.z = 3 + Math.cos(time * 0.4) * 0.5;
     }
 
     this.renderer.render(this.scene, this.camera);

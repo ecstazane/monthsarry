@@ -9,8 +9,17 @@ class MusicPlayerManager {
     this.iconEl = null;
     this.textEl = null;
     this.badgeEl = null;
+    this.badgeTextEl = null;
 
-    // Web Audio Fallback Synth
+    // Track list
+    this.tracks = {
+      captivated: { src: './assets/captivated.mp3', title: 'CAPTIVATED' },
+      nothing:    { src: './assets/nothing.mp3',    title: 'NOTHING' },
+      blessed:    { src: './assets/blessed.mp3',    title: 'BLESSED' },
+    };
+    this.currentTrack = 'captivated';
+
+    // Web Audio Fallback
     this.audioCtx = null;
     this.synthOscs = [];
     this.synthGain = null;
@@ -19,6 +28,7 @@ class MusicPlayerManager {
   init() {
     this.buttonEl = document.getElementById('music-btn');
     this.badgeEl = document.getElementById('now-playing-badge');
+    this.badgeTextEl = this.badgeEl ? this.badgeEl.querySelector('.badge-text') : null;
 
     if (this.buttonEl) {
       this.iconEl = this.buttonEl.querySelector('.btn-icon');
@@ -34,9 +44,8 @@ class MusicPlayerManager {
       }, { passive: true });
     }
 
-    // Simple, direct relative URL — works with Vite base: './'
-    // On GitHub Pages: https://ecstazane.github.io/monthsarry/assets/blessed.mp3
-    this.audio = new Audio('./assets/blessed.mp3');
+    // Create audio element with default track (Captivated)
+    this.audio = new Audio(this.tracks[this.currentTrack].src);
     this.audio.loop = true;
     this.audio.volume = 0.85;
     this.audio.preload = 'auto';
@@ -56,8 +65,54 @@ class MusicPlayerManager {
     });
 
     this.audio.addEventListener('error', (e) => {
-      console.warn('Audio load failed for ./assets/blessed.mp3, error:', e);
+      console.warn('Audio load error:', e);
     });
+
+    // Set up polaroid click listeners for track switching
+    this.initPolaroidTrackSwitching();
+  }
+
+  initPolaroidTrackSwitching() {
+    const polaroids = document.querySelectorAll('.polaroid-card[data-song]');
+
+    polaroids.forEach((card) => {
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const songKey = card.dataset.song;
+        if (songKey && this.tracks[songKey]) {
+          this.switchTrack(songKey);
+        }
+      });
+    });
+  }
+
+  switchTrack(trackKey) {
+    if (!this.tracks[trackKey]) return;
+
+    const wasPlaying = this.isPlaying;
+
+    // Pause current
+    if (this.audio && !this.audio.paused) {
+      this.audio.pause();
+    }
+
+    // Switch source
+    this.currentTrack = trackKey;
+    this.audio.src = this.tracks[trackKey].src;
+    this.audio.load();
+
+    // Update badge text
+    if (this.badgeTextEl) {
+      this.badgeTextEl.textContent = `NOW PLAYING — ${this.tracks[trackKey].title}`;
+    }
+
+    // Update active polaroid visual
+    document.querySelectorAll('.polaroid-card').forEach(c => c.classList.remove('is-active-track'));
+    const activeCard = document.querySelector(`.polaroid-card[data-song="${trackKey}"]`);
+    if (activeCard) activeCard.classList.add('is-active-track');
+
+    // Auto-play if music was already playing, or start playing on click
+    this.play();
   }
 
   setGlobalLighting(illuminated) {
@@ -89,16 +144,11 @@ class MusicPlayerManager {
 
     if (this.audio) {
       const playPromise = this.audio.play();
-
       if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            // Song playing successfully
-          })
-          .catch((err) => {
-            console.warn('Audio play failed, starting fallback synth:', err);
-            this.startFallbackSynth();
-          });
+        playPromise.catch((err) => {
+          console.warn('Audio play failed, starting fallback synth:', err);
+          this.startFallbackSynth();
+        });
       }
     } else {
       this.startFallbackSynth();
@@ -121,11 +171,9 @@ class MusicPlayerManager {
     if (this.textEl) {
       this.textEl.textContent = playing ? 'PAUSE OUR SONG' : 'PLAY OUR SONG';
     }
-
     if (this.iconEl) {
       this.iconEl.textContent = playing ? '⏸' : '▶';
     }
-
     if (this.badgeEl) {
       if (playing) {
         this.badgeEl.classList.add('active');
@@ -141,11 +189,7 @@ class MusicPlayerManager {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         this.audioCtx = new AudioContext();
       }
-
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
-      }
-
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
       this.stopFallbackSynth();
       this.setGlobalLighting(true);
 
@@ -176,9 +220,7 @@ class MusicPlayerManager {
     if (this.synthGain && this.audioCtx) {
       this.synthGain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + 0.8);
       setTimeout(() => {
-        this.synthOscs.forEach((osc) => {
-          try { osc.stop(); } catch (e) {}
-        });
+        this.synthOscs.forEach((osc) => { try { osc.stop(); } catch (e) {} });
         this.synthOscs = [];
       }, 800);
     }
