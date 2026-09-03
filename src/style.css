@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cinematic 11th Monthsary — Master Stylesheet & Mobile Optimizations
+   Cinematic 11th Monthsary — Master Stylesheet & Robust Scroll Architecture
    ========================================================================== */
 
 :root {
@@ -23,14 +23,21 @@
   padding: 0;
 }
 
-html, body {
+html {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  background-color: var(--bg-dark-room);
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
   background-color: var(--bg-dark-room);
   color: var(--text-light);
   font-family: var(--font-sans);
   overflow-x: hidden;
-  overflow-y: auto;
+  position: relative;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -260,7 +267,7 @@ html, body {
   position: relative;
   width: 100vw;
   height: 100vh;
-  min-height: 680px;
+  min-height: 650px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -520,13 +527,13 @@ html, body {
 }
 
 /* ==========================================================================
-   5. Dedicated Love Letter Section (Mobile Guaranteed Reveal)
+   5. Dedicated Love Letter Section
    ========================================================================== */
 .message-section {
   position: relative;
   width: 100%;
-  min-height: 180vh;
-  padding: 16vh 6vw 12vh 6vw;
+  min-height: 160vh;
+  padding: 14vh 6vw 10vh 6vw;
   z-index: 40;
   display: flex;
   justify-content: center;
@@ -537,22 +544,19 @@ html, body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24vh;
+  gap: 20vh;
 }
 
 .message-paragraph {
   opacity: 0;
-  transform: translateY(30px);
-  filter: blur(8px);
-  will-change: opacity, transform, filter;
-  transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+  transform: translateY(25px);
+  will-change: opacity, transform;
+  transition: opacity 0.7s ease, transform 0.7s ease;
 }
 
-/* Guaranteed visibility class */
 .message-paragraph.is-visible {
   opacity: 1 !important;
   transform: translateY(0) !important;
-  filter: blur(0px) !important;
 }
 
 .message-paragraph p {
@@ -575,7 +579,7 @@ html, body {
 
 .message-paragraph.love-moment {
   text-align: center;
-  margin-top: 6vh;
+  margin-top: 4vh;
 }
 
 .love-you-text {
@@ -593,7 +597,7 @@ html, body {
 .final-section {
   position: relative;
   width: 100vw;
-  height: 140vh;
+  height: 130vh;
   z-index: 45;
   display: flex;
   justify-content: center;
@@ -643,7 +647,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Mobile & iPad Responsive Adaptations
+   Mobile Adaptations
    ========================================================================== */
 @media (max-width: 1024px) {
   .lampshade-fixture { left: 50%; }
@@ -656,15 +660,9 @@ html, body {
 }
 
 @media (max-width: 768px) {
-  /* Disable heavy CSS blur filter on mobile GPUs for crisp responsive performance */
-  .message-paragraph {
-    filter: none !important;
-  }
-
   .message-container {
-    gap: 16vh;
+    gap: 14vh;
   }
-
   .hero-section { justify-content: flex-start; padding: 2.5rem 5vw; }
   .hero-typography { max-width: 100%; }
   .music-control-wrapper { position: absolute; bottom: 3.5rem; left: 5vw; }

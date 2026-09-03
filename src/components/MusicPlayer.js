@@ -30,13 +30,12 @@ class MusicPlayerManager {
       });
       
       this.buttonEl.addEventListener('touchstart', (e) => {
-        // Ensure immediate mobile touch response
         e.stopPropagation();
       }, { passive: true });
     }
 
-    // Resolve relative URL for GitHub Pages / Vite relative base
-    const songUrl = new URL('../../public/assets/blessed.mp3', import.meta.url).href;
+    // Resolve relative asset URL cleanly for both local preview and GitHub Pages base
+    const songUrl = new URL('assets/blessed.mp3', window.location.href.replace(/\/[^\/]*$/, '/')).href;
     this.audio = new Audio(songUrl);
     this.audio.loop = true;
     this.audio.volume = 0.85;
@@ -55,9 +54,9 @@ class MusicPlayerManager {
       Vinyl3D.setSpinning(false);
     });
 
-    // Asset fallback for relative paths
-    this.audio.addEventListener('error', () => {
-      console.warn('Primary audio failed, trying relative ./assets/blessed.mp3');
+    // Fallback try relative './assets/blessed.mp3' if initial fetch errors
+    this.audio.addEventListener('error', (e) => {
+      console.warn('Primary audio load error, attempting fallback:', e);
       if (!this.audio.src.endsWith('assets/blessed.mp3')) {
         this.audio.src = './assets/blessed.mp3';
       }
@@ -97,7 +96,7 @@ class MusicPlayerManager {
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            // Song started successfully
+            // Song playing
           })
           .catch((err) => {
             console.warn('Audio play restricted or failed, starting Web Audio fallback synth:', err);

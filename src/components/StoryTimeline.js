@@ -1,39 +1,49 @@
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Lenis from 'lenis';
 import { Vinyl3D } from './Vinyl3D.js';
 
 gsap.registerPlugin(ScrollTrigger);
+
+// Detect mobile/touch devices
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth <= 768;
+}
 
 class StoryTimelineManager {
   constructor() {
     this.lenis = null;
     this.scrollTl = null;
+    this.useLenis = false;
   }
 
-  init() {
-    const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+  async init() {
+    this.useLenis = !isTouchDevice();
 
-    // 1. Initialize Lenis (on mobile, disable touch hijacking for 100% native smooth momentum)
-    this.lenis = new Lenis({
-      lerp: isMobile ? 1.0 : 0.08,
-      orientation: 'vertical',
-      smoothWheel: !isMobile,
-      wheelMultiplier: 1.0,
-      touchMultiplier: 1.0,
-    });
+    if (this.useLenis) {
+      // Only import and use Lenis on desktop for buttery wheel scrolling
+      const { default: Lenis } = await import('lenis');
+      this.lenis = new Lenis({
+        lerp: 0.08,
+        orientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1.0,
+      });
 
-    // Synchronize Lenis with GSAP Ticker
-    this.lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => {
-      this.lenis.raf(time * 1000);
-    });
-    gsap.ticker.lagSmoothing(0);
+      this.lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time) => {
+        this.lenis.raf(time * 1000);
+      });
+      gsap.ticker.lagSmoothing(0);
 
-    // Disable scrolling during intro phase
-    this.lenis.stop();
+      // Block scrolling during intro
+      this.lenis.stop();
+    } else {
+      // On mobile: block native scroll during intro, then unlock
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    }
 
-    // 2. Play Black Screen Intro & Curtain Split Sequence
+    // Play the intro sequence
     this.playIntroSequence();
   }
 
@@ -46,10 +56,15 @@ class StoryTimelineManager {
 
     const introTl = gsap.timeline({
       onComplete: () => {
-        // Enable smooth scrolling when curtain finishes opening
-        this.lenis.start();
+        // Unlock scrolling
+        if (this.useLenis && this.lenis) {
+          this.lenis.start();
+        } else {
+          document.body.style.overflow = '';
+          document.documentElement.style.overflow = '';
+        }
+
         this.initScrollTriggerAnimations();
-        
         ScrollTrigger.refresh();
       }
     });
@@ -117,81 +132,99 @@ class StoryTimelineManager {
     const f4 = document.getElementById('final-line-4');
     const fadeOverlay = document.getElementById('fade-overlay');
 
-    // Main Scroll Timeline using pure GPU transform properties
-    this.scrollTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: '.story-container',
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: 1.0,
-        onUpdate: (self) => {
-          Vinyl3D.updateScroll(self.progress);
-        }
+    // Main scroll progress tracker for vinyl 3D position updates
+    ScrollTrigger.create({
+      trigger: '.story-container',
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      onUpdate: (self) => {
+        Vinyl3D.updateScroll(self.progress);
       }
     });
 
     // Subtle parallax shift for polaroids
-    this.scrollTl
-      .to([pol1, pol2, pol3], {
+    if (pol1 && pol2 && pol3) {
+      gsap.to([pol1, pol2, pol3], {
+        scrollTrigger: {
+          trigger: '.hero-section',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+        },
         y: '-=40',
         stagger: 0.05,
         ease: 'none'
-      }, 0);
-
-    // --------------------------------------------------------------------------
-    // Love Letter Progressive Paragraph Reveals (Guaranteed on mobile)
-    // --------------------------------------------------------------------------
-    paragraphs.forEach((p) => {
-      gsap.to(p, {
-        scrollTrigger: {
-          trigger: p,
-          start: 'top 88%',
-          end: 'top 50%',
-          scrub: 0.6
-        },
-        opacity: 1,
-        y: 0,
-        filter: 'blur(0px)',
-        ease: 'power2.out'
       });
-    });
-
-    // Fallback IntersectionObserver for mobile devices to guarantee text visibility
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-          }
-        });
-      }, { threshold: 0.15 });
-
-      paragraphs.forEach(p => observer.observe(p));
     }
 
-    // --------------------------------------------------------------------------
+    // Love Letter paragraph reveals — IntersectionObserver for bulletproof mobile support
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -5% 0px' });
+
+    paragraphs.forEach(p => observer.observe(p));
+
+    // Also use GSAP ScrollTrigger for desktop (more polished scrub behavior)
+    if (this.useLenis) {
+      paragraphs.forEach((p) => {
+        gsap.to(p, {
+          scrollTrigger: {
+            trigger: p,
+            start: 'top 88%',
+            end: 'top 55%',
+            scrub: 0.5
+          },
+          opacity: 1,
+          y: 0,
+          ease: 'power2.out'
+        });
+      });
+    }
+
     // Final Finale Section
-    // --------------------------------------------------------------------------
-    const finalTl = gsap.timeline({
-      scrollTrigger: {
-        trigger: '#final-section',
-        start: 'top 70%',
-        end: 'bottom bottom',
-        scrub: 1.0
+    if (f1 && f2 && f3 && f4) {
+      // Use IntersectionObserver for finale lines too (mobile guarantee)
+      const finalObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            gsap.to(entry.target, {
+              opacity: 1,
+              y: 0,
+              duration: 1.0,
+              ease: 'power2.out'
+            });
+          }
+        });
+      }, { threshold: 0.2 });
+
+      [f1, f2, f3, f4].forEach(el => finalObserver.observe(el));
+
+      // Fade overlay at very end
+      if (fadeOverlay) {
+        ScrollTrigger.create({
+          trigger: '#final-section',
+          start: 'center center',
+          end: 'bottom bottom',
+          scrub: true,
+          onUpdate: (self) => {
+            fadeOverlay.style.opacity = self.progress * 0.75;
+          }
+        });
       }
-    });
+    }
 
-    finalTl
-      .to(f1, { opacity: 1, y: 0, duration: 1 })
-      .to(f2, { opacity: 1, y: 0, duration: 1 }, '+=0.5')
-      .to(f3, { opacity: 1, y: 0, duration: 1 }, '+=0.5')
-      .to(f4, { opacity: 1, y: 0, duration: 1.5 }, '+=0.5')
-      .to(fadeOverlay, { opacity: 0.75, duration: 2 }, '+=0.8');
-
-    // Refresh ScrollTrigger when images load
+    // Refresh ScrollTrigger once images load
     window.addEventListener('load', () => {
       ScrollTrigger.refresh();
     });
+
+    // Extra safety refresh after a short delay
+    setTimeout(() => ScrollTrigger.refresh(), 500);
   }
 }
 
