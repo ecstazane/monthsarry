@@ -12,12 +12,13 @@ class StoryTimelineManager {
   }
 
   init() {
-    // 1. Initialize Lenis with snappy, natural responsiveness (lerp: 0.08)
+    const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
+
+    // 1. Initialize Lenis (on mobile, disable touch hijacking for 100% native smooth momentum)
     this.lenis = new Lenis({
-      lerp: 0.08,
+      lerp: isMobile ? 1.0 : 0.08,
       orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
+      smoothWheel: !isMobile,
       wheelMultiplier: 1.0,
       touchMultiplier: 1.0,
     });
@@ -49,14 +50,11 @@ class StoryTimelineManager {
         this.lenis.start();
         this.initScrollTriggerAnimations();
         
-        // Refresh ScrollTrigger calculations after initial setup
         ScrollTrigger.refresh();
       }
     });
 
-    // --------------------------------------------------------------------------
     // PHASE 1 — Black Screen Opening
-    // --------------------------------------------------------------------------
     introTl
       .to(introMsg1, {
         opacity: 1,
@@ -92,9 +90,7 @@ class StoryTimelineManager {
         }
       })
 
-    // --------------------------------------------------------------------------
     // PHASE 2 — Cinematic Curtain Reveal
-    // --------------------------------------------------------------------------
       .to(curtainLeft, {
         xPercent: -100,
         duration: 2.2,
@@ -143,15 +139,15 @@ class StoryTimelineManager {
       }, 0);
 
     // --------------------------------------------------------------------------
-    // Love Letter Progressive Paragraph Reveals
+    // Love Letter Progressive Paragraph Reveals (Guaranteed on mobile)
     // --------------------------------------------------------------------------
     paragraphs.forEach((p) => {
       gsap.to(p, {
         scrollTrigger: {
           trigger: p,
-          start: 'top 82%',
-          end: 'top 45%',
-          scrub: 0.8
+          start: 'top 88%',
+          end: 'top 50%',
+          scrub: 0.6
         },
         opacity: 1,
         y: 0,
@@ -160,13 +156,26 @@ class StoryTimelineManager {
       });
     });
 
+    // Fallback IntersectionObserver for mobile devices to guarantee text visibility
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      }, { threshold: 0.15 });
+
+      paragraphs.forEach(p => observer.observe(p));
+    }
+
     // --------------------------------------------------------------------------
     // Final Finale Section
     // --------------------------------------------------------------------------
     const finalTl = gsap.timeline({
       scrollTrigger: {
         trigger: '#final-section',
-        start: 'top 65%',
+        start: 'top 70%',
         end: 'bottom bottom',
         scrub: 1.0
       }

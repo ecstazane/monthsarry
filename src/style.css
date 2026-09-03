@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Cinematic 11th Monthsary — Global Dark Room Lighting & Stylesheet
+   Cinematic 11th Monthsary — Master Stylesheet & Mobile Optimizations
    ========================================================================== */
 
 :root {
@@ -30,6 +30,7 @@ html, body {
   color: var(--text-light);
   font-family: var(--font-sans);
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -152,10 +153,10 @@ html, body {
   width: 100%;
   min-height: 100vh;
   background: radial-gradient(circle at 35% 30%, #151412 0%, #090908 65%, #050504 100%);
-  transition: background 2.2s var(--ease-cinematic);
+  transition: background 1.8s var(--ease-cinematic);
+  overflow-x: hidden;
 }
 
-/* Global Light Switch On State */
 #app.is-illuminated {
   background: radial-gradient(circle at 35% 30%, #302b22 0%, #171613 65%, #0a0a09 100%);
 }
@@ -169,7 +170,7 @@ html, body {
   z-index: 10;
   pointer-events: none;
   opacity: 0.35;
-  transition: opacity 2.2s var(--ease-cinematic);
+  transition: opacity 1.8s var(--ease-cinematic);
 }
 
 #app.is-illuminated #canvas-container {
@@ -180,6 +181,7 @@ html, body {
   position: relative;
   z-index: 20;
   width: 100%;
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -225,7 +227,7 @@ html, body {
   background-color: var(--lamp-glow);
   opacity: 0;
   box-shadow: 0 0 40px var(--lamp-glow), 0 0 90px #ffb347;
-  transition: opacity 2.0s var(--ease-cinematic);
+  transition: opacity 1.8s var(--ease-cinematic);
 }
 
 #app.is-illuminated .lampshade-glow {
@@ -243,7 +245,7 @@ html, body {
   opacity: 0;
   transform: scale(0.7);
   transform-origin: top center;
-  transition: opacity 2.4s var(--ease-cinematic), transform 2.4s var(--ease-cinematic);
+  transition: opacity 1.8s var(--ease-cinematic), transform 1.8s var(--ease-cinematic);
 }
 
 #app.is-illuminated .lampshade-cone {
@@ -252,7 +254,7 @@ html, body {
 }
 
 /* ==========================================================================
-   3. Main Hero Section (Dark Room Initial State -> Illuminated State)
+   3. Main Hero Section
    ========================================================================== */
 .hero-section {
   position: relative;
@@ -272,7 +274,7 @@ html, body {
   max-width: 450px;
   margin-top: 1rem;
   opacity: 0.35;
-  transition: opacity 2.2s var(--ease-cinematic);
+  transition: opacity 1.8s var(--ease-cinematic);
 }
 
 #app.is-illuminated .hero-typography {
@@ -299,7 +301,7 @@ html, body {
   text-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
 
-/* Play Our Song Button (Inviting Glow in Dark State) */
+/* Play Our Song Button */
 .music-control-wrapper {
   position: relative;
   z-index: 50;
@@ -328,9 +330,10 @@ html, body {
   gap: 0.75rem;
   transition: all 0.4s var(--ease-cinematic);
   box-shadow: 0 0 25px rgba(223, 186, 106, 0.25), 0 10px 30px rgba(0,0,0,0.5);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.music-btn:hover {
+.music-btn:hover, .music-btn:focus {
   background: rgba(245, 242, 235, 0.22);
   border-color: rgba(245, 242, 235, 0.7);
   transform: translateY(-2px);
@@ -401,7 +404,7 @@ html, body {
   text-transform: uppercase;
   z-index: 30;
   opacity: 0.3;
-  transition: opacity 2.2s var(--ease-cinematic);
+  transition: opacity 1.8s var(--ease-cinematic);
   animation: bounceScroll 2.2s infinite ease-in-out;
 }
 
@@ -438,7 +441,7 @@ html, body {
     inset 0 0 15px rgba(0, 0, 0, 0.03);
   width: min(300px, 30vw);
   opacity: 0.35;
-  transition: opacity 2.2s var(--ease-cinematic), transform 0.5s var(--ease-cinematic), box-shadow 0.5s var(--ease-cinematic);
+  transition: opacity 1.8s var(--ease-cinematic), transform 0.5s var(--ease-cinematic), box-shadow 0.5s var(--ease-cinematic);
   cursor: pointer;
   will-change: transform, opacity;
   border: 1px solid rgba(255, 255, 255, 0.6);
@@ -517,13 +520,13 @@ html, body {
 }
 
 /* ==========================================================================
-   5. Dedicated Love Letter Section
+   5. Dedicated Love Letter Section (Mobile Guaranteed Reveal)
    ========================================================================== */
 .message-section {
   position: relative;
   width: 100%;
-  min-height: 200vh;
-  padding: 20vh 6vw 15vh 6vw;
+  min-height: 180vh;
+  padding: 16vh 6vw 12vh 6vw;
   z-index: 40;
   display: flex;
   justify-content: center;
@@ -534,15 +537,22 @@ html, body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 30vh;
+  gap: 24vh;
 }
 
 .message-paragraph {
   opacity: 0;
-  transform: translateY(35px);
-  filter: blur(10px);
+  transform: translateY(30px);
+  filter: blur(8px);
   will-change: opacity, transform, filter;
-  transition: all 0.3s ease-out;
+  transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+}
+
+/* Guaranteed visibility class */
+.message-paragraph.is-visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  filter: blur(0px) !important;
 }
 
 .message-paragraph p {
@@ -565,7 +575,7 @@ html, body {
 
 .message-paragraph.love-moment {
   text-align: center;
-  margin-top: 10vh;
+  margin-top: 6vh;
 }
 
 .love-you-text {
@@ -583,7 +593,7 @@ html, body {
 .final-section {
   position: relative;
   width: 100vw;
-  height: 160vh;
+  height: 140vh;
   z-index: 45;
   display: flex;
   justify-content: center;
@@ -633,11 +643,10 @@ html, body {
 }
 
 /* ==========================================================================
-   Responsive Adaptations
+   Mobile & iPad Responsive Adaptations
    ========================================================================== */
 @media (max-width: 1024px) {
   .lampshade-fixture { left: 50%; }
-
   .hero-section { padding: 3rem 4vw; }
   .polaroid-composition { width: 55vw; }
   .polaroid-card { width: min(260px, 35vw); padding: 12px 12px 34px 12px; }
@@ -647,28 +656,37 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  /* Disable heavy CSS blur filter on mobile GPUs for crisp responsive performance */
+  .message-paragraph {
+    filter: none !important;
+  }
+
+  .message-container {
+    gap: 16vh;
+  }
+
   .hero-section { justify-content: flex-start; padding: 2.5rem 5vw; }
   .hero-typography { max-width: 100%; }
-  .music-control-wrapper { position: absolute; bottom: 4rem; left: 5vw; }
-  .polaroid-composition { width: 100vw; height: 55vh; top: 30vh; left: 0; }
-  .polaroid-card { width: 200px; padding: 10px 10px 28px 10px; }
+  .music-control-wrapper { position: absolute; bottom: 3.5rem; left: 5vw; }
+  .polaroid-composition { width: 100vw; height: 50vh; top: 30vh; left: 0; }
+  .polaroid-card { width: 190px; padding: 10px 10px 28px 10px; }
   .polaroid-top { top: 2vh; right: 6vw; }
-  .polaroid-mid { top: 18vh; right: 34vw; }
-  .polaroid-bot { top: 34vh; right: 8vw; }
+  .polaroid-mid { top: 16vh; right: 30vw; }
+  .polaroid-bot { top: 30vh; right: 8vw; }
   .message-paragraph p { font-size: 1.45rem; line-height: 1.6; }
 }
 
 @media (max-width: 480px) {
   .hero-title { font-size: 3rem; }
   .hero-subtitle { font-size: 0.72rem; }
-  .music-btn { padding: 0.7rem 1.2rem; font-size: 0.7rem; }
+  .music-btn { padding: 0.75rem 1.3rem; font-size: 0.72rem; }
   .polaroid-composition { top: 32vh; }
-  .polaroid-card { width: 165px; padding: 8px 8px 24px 8px; }
+  .polaroid-card { width: 160px; padding: 8px 8px 24px 8px; }
   .polaroid-caption { font-size: 0.72rem; bottom: -22px; }
   .polaroid-top { top: 2vh; right: 4vw; }
-  .polaroid-mid { top: 16vh; right: 24vw; }
-  .polaroid-bot { top: 30vh; right: 6vw; }
-  .message-section { padding: 12vh 5vw; }
+  .polaroid-mid { top: 15vh; right: 22vw; }
+  .polaroid-bot { top: 28vh; right: 6vw; }
+  .message-section { padding: 10vh 5vw; }
   .message-paragraph p { font-size: 1.25rem; line-height: 1.6; }
   .final-line { font-size: 1.75rem; }
 }

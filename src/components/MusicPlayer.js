@@ -28,10 +28,16 @@ class MusicPlayerManager {
         e.preventDefault();
         this.togglePlay();
       });
+      
+      this.buttonEl.addEventListener('touchstart', (e) => {
+        // Ensure immediate mobile touch response
+        e.stopPropagation();
+      }, { passive: true });
     }
 
-    // Initialize HTML5 Audio loading blessed.mp3
-    this.audio = new Audio('/assets/blessed.mp3');
+    // Resolve relative URL for GitHub Pages / Vite relative base
+    const songUrl = new URL('../../public/assets/blessed.mp3', import.meta.url).href;
+    this.audio = new Audio(songUrl);
     this.audio.loop = true;
     this.audio.volume = 0.85;
 
@@ -49,10 +55,11 @@ class MusicPlayerManager {
       Vinyl3D.setSpinning(false);
     });
 
-    this.audio.addEventListener('error', (err) => {
-      console.warn('Audio file loading fallback to our-song.mp3:', err);
-      if (this.audio.src.includes('blessed.mp3')) {
-        this.audio.src = '/assets/our-song.mp3';
+    // Asset fallback for relative paths
+    this.audio.addEventListener('error', () => {
+      console.warn('Primary audio failed, trying relative ./assets/blessed.mp3');
+      if (!this.audio.src.endsWith('assets/blessed.mp3')) {
+        this.audio.src = './assets/blessed.mp3';
       }
     });
   }
@@ -90,10 +97,10 @@ class MusicPlayerManager {
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            // Audio started successfully
+            // Song started successfully
           })
           .catch((err) => {
-            console.warn('Audio autoplay restriction, starting Web Audio fallback synth:', err);
+            console.warn('Audio play restricted or failed, starting Web Audio fallback synth:', err);
             this.startFallbackSynth();
           });
       }
